@@ -68,21 +68,30 @@ To get started, navigate to the `~/Projects` directory where your downloaded `Ta
 
 1. Extract the `TarDocs.tar` archive file into the current directory (`~/Projects`). Afterwards, list the directory's contents with `ls` to verify that you have extracted the archive properly.
 
-      - Note that because we want to preserve the directory structure of our archive, we do not have to specify a target directory to extract to.
-
-      - Note that when you run `ls` you should see a new `~/Projects/TarDocs` directory with five new subdirectories under `TarDocs/`.
-
 
 Verify that there is a `Java` subdirectory in the `TarDocs/Documents` folder by running: `ls -l ~/Projects/TarDocs/Documents/`.
+```bash
+tar -xf TarDocs.tar
+```
 
 2. Create a `tar` archive called `Javaless_Docs.tar` that excludes the `Java` directory from the newly extracted `TarDocs/Document/` directory.
 
       - If you've executed this command properly, you should have a `Javaless_Docs.tar` archive in the `~/Projects` folder.
+```bash
+# In ~/Projects
+tar --exclude=TarDocs/Documents/Java -cf Javaless_Docs.tar TarDocs
+```
 
 3. Verify that this new `Javaless_Docs.tar` archive does not contain the `Java` subdirectory by using `tar` to list the contents of `Javaless_Docs.tar` and then piping `grep` to search for `Java`.
+```bash
+tar -tf Javaless_Docs.tar | grep -i java
+```
 
 **Bonus** 
 - Create an incremental archive called `logs_backup.tar.gz` that contains only changed files by examining the `snapshot.file` for the `/var/log` directory. You will need `sudo` for this command.
+```bash
+sudo tar -czf logs_backup.tar.gz --listed-incremental=snapshot.file --level=0 /var/log
+```
 
 ---
 
@@ -90,79 +99,64 @@ Verify that there is a `Java` subdirectory in the `TarDocs/Documents` folder by 
 
 In response to a ransomware attack, you have been tasked with creating an archiving and backup scheme to mitigate against CryptoLocker malware. This attack would encrypt the entire server’s hard disk and can only be unlocked using a 256-bit digital key after a Bitcoin payment is delivered.
 
-For this task, you'll need to create an archiving cron job using the following specifications: 
-
-   - This cron job should create an archive of the following file: `/var/log/auth.log`.
-   - The filename and location of the archive should be: `/auth_backup.tgz`.
-   - The archiving process should be scheduled to run every Wednesday at 6 a.m.
-   - Use the correct archiving zip option to compress the archive using `gzip`.
-
-1. To get started creating cron jobs, run the command `crontab -e`. Make sure that your cron job line includes the following:
-
-      - The schedule (minute, hour, etc.) in cron format.
-            - **Hint:** Reference the helpful site [crontab.guru](https://crontab.guru/) as needed.
-      - An archive (`tar`) command with three options.
-      - The path to save the archive to
-      - The path of the file to archive.
-
+```cron
+0 6 * * 3 tar -czf /auth_backup.tgz /var/log/auth.log
+```
 ---
 
 #### Step 3: Write Basic Bash Scripts
 
 Portions of the Gramm-Leach-Bliley Act require organizations to maintain a regular backup regimen for the safe and secure storage of financial data.
 
-You'll first need to set up multiple backup directories. Each directory will be dedicated to housing text files that you will create with different kinds of system information.
-
-For example, the directory `freemem` will be used to store **free memory** system information files.
 
 1. Using brace expansion, create the following four directories:
-      - `~/backups/freemem`
-      - `~/backups/diskuse`
-      - `~/backups/openlist`
-      - `~/backups/freedisk`
+    
+```bash
+mkdir -p ~/backups/{freemem,diskuse,openlist,freedisk}
+```
 
-      **Note**: Remember that brace expansion uses the following format: `~/exampledirectory/{subdirectory1,subdirectory2,etc}`
-
-Now you will create a script that will execute various Linux tools to parse information about the system. Each of these tools should output results to a text file inside its respective system information directory.
-
--  For example: `cpu_usage_tool > ~/backups/cpuuse/cpu_usage.txt`
-
- In the above example, the `cpu_usage_tool` command will output CPU usage information into a `cpu_usage.txt` file.
-
-To get started with setting up your script up in your `home` directory, do the following:
-
-- Navigate to your `home` directory by running: `cd ~/`
-
-- Run the command `nano system.sh` to open a new Nano window.
-
-**Note**: If you're unsure how to get started, we included a `system.sh` starter file. Use that as a guide.
 
 2. Edit the `system.sh` script file so that it that does the following:
 
-      - Prints the amount of free memory on the system and saves it to `~/backups/freemem/free_mem.txt`.
+     ```bash
+    #!/bin/bash
+    # Free memory
+    free -h > ~/backups/freemem/free_mem.txt
 
-      - Prints disk usage and saves it to `~/backups/diskuse/disk_usage.txt`.
+    # Disk usage. Could also be run as:
+    # du -h -d 1 / > ~/backups/diskuse/disk_usage.txt
+    # to only show a depth of 1 directory, or
+    # du -hs 1 / > ~/backups/diskuse/disk_usage.txt
+    # to only show a summary.
+    du -h / > ~/backups/diskuse/disk_usage.txt
 
-      - Lists all open files and saves it to `~/backups/openlist/open_list.txt`.
+    # List open files
+    lsof > ~/backups/openlist/open_list.txt
 
-      - Prints file system disk space statistics and saves it to `~/backups/freedisk/free_disk.txt`.
-
-      **Note**: For the free memory, disk usage, and free disk commands, make sure you use the `-h` option to make the output human-readable.
+    # Free disk space
+    df -h > ~/backups/freedisk/free_disk.txt
+    ```
 
 3. Save this file and make sure to change or modify the `system.sh` file permissions so that it is executable.
 
-You should now have an executable `system.sh` file within your home `~/` directory.
-
-- Test the script with `sudo ./system.sh`.
-
-- **Note**: If it appears, ignore the warning: `lsof: WARNING: can't stat() fuse.gvfsd-fuse file system /run/user/1001/gvfs Output information may be incomplete.` 
-
+```bash
+# Assuming it is in your current working directory...
+chmod +x ./system.sh
+```
 **Optional** 
 - Confirm the script ran properly by navigating to any of subdirectories in the `~/backup/` directory and using `cat <filename>` to view the contents of the backup files.
-
+```bash
+cd ~/backup
+cat freemem/free_mem.txt
+cat diskuse/disk_usage.txt
+cat openlist/open_list.txt
+cat freedisk/free_disk.txt
+```
 **Bonus**
 - Automate your script `system.sh` by adding it to the `weekly` system-wide cron directory.
-
+```bash
+sudo cp ~/system.sh /etc/cron.weekly
+```
 ---
 
 #### Step 4. [OPTIONAL] Manage Log File Sizes
@@ -174,7 +168,15 @@ You realize that the spam messages are making the size of the log files unmanage
 You’ve decided to implement log rotation in order to preserve log entries and keep log file sizes more manageable. You’ve also chosen to compress logs during rotation to preserve disk space and lower costs.
 
 1. Run `sudo nano /etc/logrotate.conf` to edit the `logrotate` config file. You don't need to work out of any specific directory as you are using the full configuration file path.
-
+    ```bash
+    /var/log/auth.log {
+      weekly
+      rotate 7
+      notifempty
+      delaycompress
+      missingok
+    }
+    ```
 
 2. Configure a log rotation scheme that backs up authentication messages to the `/var/log/auth.log` directory using the following settings:
 
@@ -197,38 +199,58 @@ You’ve decided to implement log rotation in order to preserve log entries and 
 In an effort to help mitigate against future attacks, you have decided to create an event monitoring system that specifically generates reports whenever new accounts are created or modified, and when any modifications are made to authorization logs.
 
 1. Verify the `auditd` service is active using the `systemctl` command.
-
+```bash
+systemctl status auditd
+```
 
 2. Run `sudo nano /etc/audit/auditd.conf` to edit the `auditd` config file using the following parameters. You can run this command from anywhere using the terminal.
 
       - Number of retained logs is seven.
 
       - Maximum log file size is 35.
+    ```bash
+    max_log_file = 35
+    num_logs = 7
+    ```
 
 3. Next, run `sudo nano /etc/audit/rules.d/audit.rules` to edit the rules for `auditd`. Create rules that watch the following paths:
 
-      - For `/etc/shadow`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `hashpass_audit`.
-
-      - For `/etc/passwd`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `userpass_audit`.
-
-      - For `/var/log/auth.log`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `authlog_audit`.
+```bash
+  -w /etc/shadow -p wra -k hashpass_audit
+  -w /etc/passwd -p wra -k userpass_audit
+  -w /var/log/auth.log -p wra -k authlog_audit
+```
 
 4. Restart the `auditd` daemon.
+```bash
+sudo systemctl restart auditd
+```
 
 5. Perform a listing that reveals all existing `auditd` rules.
-
-      - **Note**: If you're unsure how to construct these rules, refer to the `auditd` section within the [5.3 Student Guide](../../1-Lesson-Plans/05-Archiving-and-Logging-Data/3/studentguide.md). 
+```bash
+sudo auditctl -l
+```
 
 6. Using `sudo`, produce an audit report that returns results for all user authentications.
 
-      - **Note:** You will need to log out and back in to populate the report.
+```bash
+sudo aureport -au
+```
 
 7. Now you will shift into hacker mode. Create a user with `sudo useradd attacker` and produce an audit report that lists account modifications. 
+```bash
+sudo aureport -m
+```
 
 8. Use `auditctl` to add another rule that watches the `/var/log/cron` directory.
+```bash
+sudo auditctl -w /var/log/cron
+```
 
 9. Perform a listing that reveals changes to the `auditd` rules took affect.
-
+```bash
+sudo auditctl -l
+```
 ---
 
 #### Bonus (Reasearch Activity): Perform Various Log Filtering Techniques
@@ -240,16 +262,31 @@ For the bonus, **write** the `journactl` commands, for each use case below.
 **Hint:** Remember that `journal` tracks each log relative to each system boot. Also, keep in mind that you can sort messages by priority, relative boot, and specific units.
 
 1. Write the `journalctl` command that performs a log search that returns all messages, with priorities from emergency to error, since the current system boot.
+```bash
+journalctl -b -p 0..3
+```
 
 1. Write the `journalctl` command that checks the disk usage of the system journal unit since the most recent boot. You will likely have to pipe this output to `less` if it doesn't fit on the screen.
+```bash
+journalctl -b -u systemd-journald --disk-usage
+```
 
    - The unit you want is `systemd-journald`.
 
 1. Write the `journalctl` command that removes all archived journal files except the most recent two.
+```bash
+sudo journalctl --vacuum-files=2
+```
 
 1. Write the `journalctl` command that filters all log messages with priority levels between zero and two, and save the results to a file named `Priority_High.txt` in `/home/student/` directory.
+```bash
+sudo journalctl -p 0..2 >> /home/sysadmin/Priority_High.txt
+```
 
 1. Automate the last task by creating a cron job that runs daily in the user crontab.
+```bash
+@daily journalctl -p 0..2 >> /home/sysadmin/Priority_High.txt
+```
 
   **Note**: You'll need `sudo` to run `journalctl`.
 
