@@ -44,130 +44,232 @@ Submit your results and findings in a document.
 ---
 
 ### Mission 1  
-
 **Issue**: Due to the DoS attack, the Empire took down the Resistance's DNS and primary email servers. 
 
-- The Resistance's network team was able to build and deploy a new DNS server and mail server.
+Check MX records for `starwars.com` using the following command:
 
-- The new primary mail server is `asltx.l.google.com` and the secondary should be `asltx.2.google.com`.
+```bash
+nslookup -type=MX starwars.com
+```
 
-- The Resistance (starwars.com) is able to send emails but unable to receive any.
+Results of the `nslookup` command:
 
-Your mission:
+![mission1-nslookup](./mission1-nslookup.png)
 
-- Determine and document the mail servers for starwars.com using NSLOOKUP.
+The mail servers configured for `starwars.com` are as follows:
 
-- Explain why the Resistance isn't receiving any emails.
+* `aspmx3.googlemail.com`
+* `aspmx.l.google.com`
+* `aspmx2.googlemail.com`
+* `alt2.aspmx.l.google.com`
+* `alt1.aspx.l.google.com`
 
-- Document what a corrected DNS record should be.
+The resistance is not receiving emails because neither the new primary mail
+server (`asltx.l.google.com`) nor the secondary server (`asltx.2.google.com`)
+are configured in the DNS record.
+
+Recommend configuring the DNS records as follows to fix email issues for the
+resistance:
+
+```bash
+starwars.com    mail exchanger = 1 asltx.l.google.com.
+starwars.com    mail exchanger = 5 asltx.2.google.com.
+```
 
 ### Mission 2
 
 **Issue**: Now that you've addressed the mail servers, all emails are coming through. However, users are still reporting that they haven't received mail from the `theforce.net` alert bulletins.
 
-- Many of the alert bulletins are being blocked or going into spam folders.
+To determine the `SPF` record for `theforce.net`, run the following command:
 
-- This is probably due to the fact that `theforce.net` changed the IP address of their mail server to `45.23.176.21` while your network was down.
+```bash
+nslookup -type=TXT theforce.net
+```
 
-- These alerts are critical to identify pending attacks from the Empire.
+Results of the `nslookup` command:
 
-Your mission:
+![mission2-nslookup](./mission2-nslookup.png)
 
-  - Determine and document the `SPF` for `theforce.net` using NSLOOKUP.
+The text record containing the SPF record is as follows:
 
-  - Explain why the Force's emails are going to spam.
+```bash
+theforce.net    text = "v=spf1 a mx mx:smtp.secureserver.net include:aspmx.googlemail.com ip4:104.156.250.80 ip4:45.63.15.159 ip4:45.63.4.215"
+```
 
-  - Document what a corrected DNS record should be.
+The above SPF record indicates authorized emails coming from `theforce.net`
+should only come from the following IP addresses:
+
+* `104.156.250.80`
+* `45.63.15.159`
+* `45.63.4.215`
+
+SPF records list all authorized hostnames and IP addresses that are permitted to
+send email on behalf of a given domain.
+Since the IP address supplied in the instructions (`45.23.176.21`) is not in the
+SPF record, most spam filters will flag emails coming from `45.23.176.21` with
+the sender `theforce.net` as spam.
+
+A corrected SPF record for `theforce.net` should read as follows, when returned
+from the above `nslookup` command:
+
+```bash
+theforce.net    text = "v=spf1 a mx mx:smtp.secureserver.net include:aspmx.googlemail.com ip4:45.23.176.21"
+```
+
   
 ### Mission 3
 
 **Issue**: You have successfully resolved all email issues and the resistance can now receive alert bulletins. However, the Resistance is unable to easily read the details of alert bulletins online. 
-  
-  - They are supposed to be automatically redirected from their sub page of `resistance.theforce.net`  to `theforce.net`.
 
-Your mission:
-  
-  - Document how a CNAME should look by viewing the CNAME of `www.theforce.net` using NSLOOKUP.
-  
-  - Explain why the sub page of `resistance.theforce.net` isn't redirecting to `theforce.net`.
-  
-  - Document what a corrected DNS record should be.
-  
+To determine how a correct `CNAME` record should look using `nslookup`, run one
+of the following commands (depending on if one wants the entire record, or only
+the `CNAME` record):
+
+```bash
+nslookup www.theforce.net
+nslookup -type=CNAME www.theforce.net
+```
+
+Results of the above `nslookup` command:
+
+![mission3-nslookup](./mission3-nslookup.png)
+
+The relevant portion of the result of the command is:
+
+```bash
+www.theforce.net        canonical name = theforce.net.
+```
+
+To determine the current DNS records for `resistance.theforce.net`, run the
+following command:
+
+```bash
+nslookup resistance.theforce.net
+```
+
+Results of the above `nslookup` command:
+
+![mission3-nslookup2](./mission3-nslookup2.png)
+
+The subdomain `resistance.theforce.net` is not redirecting to `theforce.net`
+because there is no DNS record specified for `resistance.theforce.net`. To
+ensure `resistance.theforce.net` redirects to `theforce.net`, a proper DNS
+`CNAME` record should read as follows when returned from the above `nslookup`
+command:
+
+```bash
+resistance.theforce.net        canonical name = theforce.net.
+```
   
 ### Mission 4
 
 **Issue**: During the attack, it was determined that the Empire also took down the primary DNS server of `princessleia.site`. 
 
-- Fortunately, the DNS server for `princessleia.site` is backed up and functioning. 
+To confirm the DNS records for `princessleia.site`, run the following commands:
 
-- However, the Resistance was unable to access this important site during the attacks and now they need you to prevent this from happening again.
+```bash
+nslookup princessleia.site
+nslookup -type=NS princessleia.site
+```
 
-- The Resistance's networking team provided you with a backup DNS server of: `ns2.galaxybackup.com`.
+The first command checks the IP address of the site, while the second command
+checks what nameservers are being used to provide the information returned from
+the first command.
 
- Your mission:
+Results of the above `nslookup` commands:
 
-  - Confirm the DNS records for `princessleia.site`.
+![nslookup-princessleia](./nslookup-princessleia.png)
 
-  - Document how you would fix the DNS record to prevent this issue from happening again.
+`princessleia.site` is currently using the following nameservers to provide DNS
+information on the site:
+
+* `ns25.domaincontrol.com`
+* `ns26.domaincontrol.com`
+
+The provided DNS server at `ns2.galaxybackup.com` is not in the above record.
+A properly-configured DNS record would read as follows, when returned from the
+`nslookup -type=NS princessleia.site`:
+
+```bash
+princessleia.site       nameserver = ns2.galaxybackup.com.
+```
+
     
   
 ### Mission 5
 
 **Issue**: The network traffic from the planet of `Batuu` to the planet of  `Jedha` is very slow.  
 
-- You have been provided a network map with a list of planets connected between `Batuu` and `Jedha`.
+The shortest path to go from Batuu to Jedha, while avoiding Planet N, is as
+follows:
 
-- It has been determined that the slowness is due to the Empire attacking `Planet N`.
+```
+Shortest path for OSPF -N:
+Batuu -> D -> C -> G -> O -> R -> Q -> T -> V -> Jedha
+```
 
-Your Mission: 
+The route takes a total of 23 hops, and does not include Planet N.
 
-- View the [Galaxy Network Map](resources/Galaxy_Network_map.png) and determine the `OSPF` shortest path from `Batuu` to `Jedha`.
-
-- Confirm your path doesn't include `Planet N` in its route.
-
-- Document this shortest path so it can be used by the Resistance to develop a static route to improve the traffic.
-  
 ### Mission 6
 
 **Issue:** Due to all these attacks, the Resistance is determined to seek revenge for the damage the Empire has caused. 
 
-- You are tasked with gathering secret information from the Dark Side network servers that can be used to launch network attacks against the Empire.
+To determine the wireless key used to decrypt traffic for the
+[Darkside.pcap](./Darkside.pcap) file, run the following command (assuming
+`Darkside.pcap` is in the current working directory):
 
-- You have captured some of the Dark Side's encrypted wireless internet traffic in the following pcap: [Darkside.pcap](resources/Darkside.pcap).
+```bash
+aircrack-ng Darkside.pcap -w /usr/share/wordlists/rockyou.txt
+```
 
-Your Mission:
+Running the above command yielded the following results:
 
-- Figure out the Dark Side's secret wireless key by using Aircrack-ng.
+![aircrack-darkside](./aircrack-darkside.png)
 
-  - Hint: This is a more challenging encrypted wireless traffic using WPA.
+Running `aircrack-ng` returned the password `dictionary`, which can be used to
+decrypt the wireless traffic. Analysis of the `.pcap` file indicates the
+wireless access point ("WAP") used by the Dark Side has the SSID `linksys`.
 
-  - In order to decrypt, you will need to use a wordlist (-w) such as `rockyou.txt`.
+Further analysis of the decrypted `ARP` traffic yields the following results:
 
-- Use the Dark Side's key to decrypt the wireless traffic in Wireshark.
+* `ARP` requests are originating from the IP address `172.16.0.101`, and come
+  from an NIC with the mac address `00:13:ce:55:98:ef`.
+* An `ARP` reply indicating which computer is using the IP address `172.16.0.1`
+  indicates that IP address is being used by a machine with the mac address
+  `00:0f:66:e3:e4:01`.
 
-  - Hint: The format for they key to decrypt wireless is `<Wireless_key>:<SSID>`.
+In summary, the following mac address / IP pairs can be found on the `linksys`
+network used by the Dark Side:
 
-- Once you have decrypted the traffic, figure out the following Dark Side information:
-
-  - Host IP Addresses and MAC Addresses by looking at the decrypted `ARP` traffic.
-
-  - Document these IP and MAC Addresses, as the resistance will use these IP addresses to launch a retaliatory attack.
-
+* `00:13:ce:55:98:ef` => `172.16.0.101`
+* `00:0f:66:e3:e4:01` => `172.16.0.1`
 
 ### Mission 7 
 
 As a thank you for saving the galaxy, the Resistance wants to send you a secret message!
 
-Your Mission:
+To view the TXT DNS record for the record used in Mission
+4 (`princessleia.site`), run the following command:
 
-  - View the DNS record from Mission #4.
+```bash
+nslookup -type=TXT princessleia.site
+```
 
-  - The Resistance provided you with a hidden message in the `TXT` record, with several steps to follow.
-  
-  - Follow the steps from the `TXT` record.
-    - **Note**: A backup option is provided in the TXT record (as a website) in case the main telnet site is unavailable
-  
-  - Take a screen shot of the results.
+Results of the above `nslookup` command:
+
+![princessleia-txt](./princessleia-txt.png)
+
+The hidden message in the `TXT` record indicates we should run the following
+command to receive our reward:
+
+```bash
+telnet towel.blinkenlights.nl
+```
+
+Running the above command connects to a telnet server, which plays an ASCII art
+animation of _A New Hope_, as documented below.
+
+![ascii-a-new-hope](./ascii-a-new-hope.png)
     
 ### Conclusion
 
